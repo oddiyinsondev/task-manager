@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
-import type { Task, UserRole, TaskImage } from './types';
+import confetti from 'canvas-confetti';
+import type { Task, UserRole, TaskImage, TaskReport } from './types';
 import {
   loadLocalTasks,
   saveLocalTasks,
   getSavedRole,
   saveRole,
 } from './services/storageService';
+import { notifyTaskCompleted } from './services/telegramService';
 import { LoginScreen } from './components/LoginScreen';
 import { Navbar } from './components/Navbar';
 import { TimelineView } from './components/TimelineView';
 import { TaskModal } from './components/TaskModal';
+import { ReportModal } from './components/ReportModal';
 import { ImageLightboxModal } from './components/ImageLightboxModal';
 
 export function App() {
   const [role, setRole] = useState<UserRole | null>(getSavedRole);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedTaskForReport, setSelectedTaskForReport] = useState<Task | null>(null);
   const [previewImage, setPreviewImage] = useState<TaskImage | null>(null);
 
   // Dastlabki yuklash
   useEffect(() => {
-    // Eski demo ma'lumotlarni tozalash
     try {
       localStorage.removeItem('task_manager_tasks_v1');
       localStorage.removeItem('task_manager_settings_v1');
@@ -57,17 +61,41 @@ export function App() {
     updateTasks(updated);
   };
 
-  const handleCompleteTask = (taskId: string) => {
+  // Hisobot topshirilganda
+  const handleSubmitReport = (taskId: string, report: TaskReport) => {
+    const targetTask = tasks.find((t) => t.id === taskId);
+    const now = new Date().toISOString();
+
     const updated = tasks.map((t) =>
       t.id === taskId
         ? {
             ...t,
             status: 'completed' as const,
-            completedAt: new Date().toISOString(),
+            completedAt: t.completedAt || now,
+            report,
           }
         : t
     );
     updateTasks(updated);
+
+    // Confetti effekti
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 },
+      });
+    } catch (e) {}
+
+    // Telegram botga Glass Pro ga hisobot borishi
+    if (targetTask) {
+      notifyTaskCompleted(targetTask, report).catch(() => {});
+    }
+  };
+
+  const handleOpenReportModal = (task: Task) => {
+    setSelectedTaskForReport(task);
+    setIsReportModalOpen(true);
   };
 
   // Agar login qilmagan bo'lsa, Login ekrani chiqadi
@@ -97,8 +125,8 @@ export function App() {
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               {role === 'admin'
-                ? 'Siz yangi tasklar, rasmlar va fayllar (Word, Excel) kiritasiz. Dasturchi bajarganda botingizga hisobot keladi.'
-                : 'Glass Pro bergan vazifalarni ko‘ring va bajarganingizdan so‘ng "Bajardim" tugmasini bosing.'}
+                ? 'Siz yangi tasklar, rasmlar va fayllar (Word, Excel) kiritasiz. Dasturchi hisobot yuklaganda botingizga hisobot keladi.'
+                : 'Glass Pro bergan vazifalarni ko‘ring, bajargach hisobot (Word, Excel, skrinshot) yuklab topshiring.'}
             </p>
           </div>
 
@@ -112,11 +140,11 @@ export function App() {
           </div>
         </div>
 
-        {/* Timeline View (Sanama-san vazifalar) */}
+        {/* Timeline View (Sanama-san vazifalar va hisobotlar) */}
         <TimelineView
           tasks={tasks}
           role={role}
-          onComplete={handleCompleteTask}
+          onOpenReportModal={handleOpenReportModal}
           onDelete={handleDeleteTask}
           onPreviewImage={(img) => setPreviewImage(img)}
         />
@@ -124,10 +152,10 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
-        Task Manager • Telegram: @dasturchilar_p26_bot
+        Task Manager • Glass Pro & Telegram Bot: @dasturchilar_p26_bot
       </footer>
 
-      {/* Modals */}
+      {/* 1. Yangi task yaratish modali */}
       <TaskModal
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
@@ -135,6 +163,20 @@ export function App() {
         onPreviewImage={(img) => setPreviewImage(img)}
       />
 
+      {/* 2. Qilingan ishlar bo'yicha hisobot topshirish modali (Word, Excel, skrinshot) */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setSelectedTaskForReport(null);
+        }}
+        task={selectedTaskForReport}
+        role={role}
+        onSubmitReport={handleSubmitReport}
+        onPreviewImage={(img) => setPreviewImage(img)}
+      />
+
+      {/* 3. Rasmlarni to'liq ekranda ko'rish */}
       <ImageLightboxModal
         image={previewImage}
         onClose={() => setPreviewImage(null)}

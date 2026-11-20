@@ -6,7 +6,7 @@ import { TaskCard } from './TaskCard';
 interface Props {
   tasks: Task[];
   role: UserRole;
-  onComplete: (taskId: string) => void;
+  onOpenReportModal: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onPreviewImage: (image: TaskImage) => void;
 }
@@ -14,7 +14,7 @@ interface Props {
 export const TimelineView: React.FC<Props> = ({
   tasks,
   role,
-  onComplete,
+  onOpenReportModal,
   onDelete,
   onPreviewImage,
 }) => {
@@ -23,7 +23,6 @@ export const TimelineView: React.FC<Props> = ({
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  // Sana bo'yicha guruhlash (faqat hali bajarilmaganlar)
   const pendingTasks = tasks.filter((t) => t.status !== 'completed');
   const completedTasks = tasks.filter((t) => t.status === 'completed');
 
@@ -97,7 +96,7 @@ export const TimelineView: React.FC<Props> = ({
                   key={task.id}
                   task={task}
                   role={role}
-                  onComplete={onComplete}
+                  onOpenReportModal={onOpenReportModal}
                   onDelete={onDelete}
                   onPreviewImage={onPreviewImage}
                 />
@@ -107,7 +106,7 @@ export const TimelineView: React.FC<Props> = ({
         );
       })}
 
-      {/* Bajarilgan vazifalar bo'limi */}
+      {/* Bajarilgan va hisoboti topshirilgan vazifalar bo'limi */}
       {completedTasks.length > 0 && (
         <div className="space-y-3 pt-4">
           <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
@@ -115,7 +114,7 @@ export const TimelineView: React.FC<Props> = ({
               <CheckCircle className="w-4 h-4" />
             </div>
             <h2 className="text-base font-bold text-emerald-400 flex items-center gap-2">
-              <span>Bajarilgan vazifalar</span>
+              <span>Bajarilgan & Hisoboti topshirilgan vazifalar</span>
             </h2>
             <span className="ml-auto text-xs text-emerald-400/80 font-medium">
               {completedTasks.length} ta bajarildi
@@ -128,7 +127,7 @@ export const TimelineView: React.FC<Props> = ({
                 key={task.id}
                 task={task}
                 role={role}
-                onComplete={onComplete}
+                onOpenReportModal={onOpenReportModal}
                 onDelete={onDelete}
                 onPreviewImage={onPreviewImage}
               />

@@ -15,6 +15,14 @@ export interface TaskFile {
   dataUrl: string; // Base64 fayl
 }
 
+export interface TaskReport {
+  notes: string;
+  images: TaskImage[];
+  files: TaskFile[];
+  submittedAt: string;
+  submittedBy: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -26,6 +34,7 @@ export interface Task {
   status: 'pending' | 'completed';
   completedAt?: string;
   createdAt: string;
+  report?: TaskReport; // Qilingan ishlar hisoboti
 }
 
 export interface TelegramConfig {

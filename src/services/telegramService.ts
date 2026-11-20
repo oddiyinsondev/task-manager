@@ -1,4 +1,4 @@
-import type { Task } from '../types';
+import type { Task, TaskReport } from '../types';
 import { DEFAULT_TELEGRAM_CONFIG } from '../types';
 
 function escapeHtml(text: string): string {
@@ -37,9 +37,9 @@ export async function sendTelegramMessage(chatId: string, htmlText: string): Pro
 }
 
 /**
- * Dasturchi taskni bajarganida Glass Pro ga (7072212883) yuboriladigan xabar
+ * Task bajarilib, hisobot topshirilganda Glass Pro ga (7072212883) yuboriladigan xabar
  */
-export async function notifyTaskCompleted(task: Task): Promise<{ success: boolean; error?: string }> {
+export async function notifyTaskCompleted(task: Task, report?: TaskReport): Promise<{ success: boolean; error?: string }> {
   const now = new Date().toLocaleString('uz-UZ', {
     day: '2-digit',
     month: '2-digit',
@@ -48,16 +48,21 @@ export async function notifyTaskCompleted(task: Task): Promise<{ success: boolea
     minute: '2-digit',
   });
 
+  const repImagesCount = report?.images?.length || 0;
+  const repFilesCount = report?.files?.length || 0;
+
   const html = `
-<b>✅ TASK BAJARILDI!</b>
+<b>✅ TASK BAJARILDI VA HISOBOT TOPSHIRILDI!</b>
 ━━━━━━━━━━━━━━━━━━━━
 📌 <b>Vazifa:</b> ${escapeHtml(task.title)}
 📅 <b>Reja sanasi:</b> ${task.dueDate}${task.dueTime ? ' ' + task.dueTime : ''}
 ⏰ <b>Bajarilgan vaqt:</b> ${now}
-${task.images && task.images.length > 0 ? `🖼 <b>Rasmlar soni:</b> ${task.images.length} ta\n` : ''}
-${task.files && task.files.length > 0 ? `📎 <b>Biriktirilgan fayllar:</b> ${task.files.length} ta\n` : ''}
+👤 <b>Topshirdi:</b> ${escapeHtml(report?.submittedBy || 'Dasturchi')}
+${report?.notes ? `\n📝 <b>Qilingan ishlar hisoboti:</b>\n<i>${escapeHtml(report.notes)}</i>\n` : ''}
+${repImagesCount > 0 ? `🖼 <b>Natija rasmlari:</b> ${repImagesCount} ta\n` : ''}
+${repFilesCount > 0 ? `📎 <b>Hisobot fayllari (Word/Excel):</b> ${repFilesCount} ta\n` : ''}
 ━━━━━━━━━━━━━━━━━━━━
-<i>Dasturchi vazifani yakunladi deb belgiladi!</i>
+<i>Tizimga kirib fayllarni yuklab olishingiz mumkin!</i>
 `.trim();
 
   // Glass Pro ga boradi
@@ -83,7 +88,7 @@ ${task.files && task.files.length > 0 ? `📎 <b>Hujjatlar (Word/Excel):</b> ${t
   // Dasturchiga (451592269) yuboriladi
   const resDev = await sendTelegramMessage(DEFAULT_TELEGRAM_CONFIG.developerChatId, html);
 
-  // Shuningdek, Glass Pro ga ham nusxa yuboriladi
+  // Nusxasi Glass Pro ga ham boradi
   sendTelegramMessage(DEFAULT_TELEGRAM_CONFIG.glassProChatId, html).catch(() => {});
 
   return resDev;
