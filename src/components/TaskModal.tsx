@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, Calendar, Clock, Trash2, Eye, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Upload, Calendar, Clock, Trash2, Eye, Loader2, ClipboardPaste } from 'lucide-react';
 import type { Task, TaskImage } from '../types';
 import { processMultipleImages } from '../services/imageUtils';
 import { notifyTaskCreated } from '../services/telegramService';
@@ -26,6 +26,66 @@ export const TaskModal: React.FC<Props> = ({
   const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePasteFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const newImages = await processMultipleImages(files);
+      if (newImages.length > 0) {
+        setImages((prev) => [...prev, ...newImages]);
+      }
+    } catch (err) {
+      alert('Rasmni yuklashda xatolik yuz berdi');
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  // Ctrl + V (Paste) hodisasi
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const clipboardData = e.clipboardData;
+      if (!clipboardData) return;
+
+      const imageFiles: File[] = [];
+
+      // 1. Files tekshirish
+      if (clipboardData.files && clipboardData.files.length > 0) {
+        for (let i = 0; i < clipboardData.files.length; i++) {
+          const file = clipboardData.files[i];
+          if (file.type.startsWith('image/')) {
+            imageFiles.push(file);
+          }
+        }
+      }
+
+      // 2. Items tekshirish (Skrinshotlar clipboardda item sifatida keladi)
+      if (imageFiles.length === 0 && clipboardData.items && clipboardData.items.length > 0) {
+        for (let i = 0; i < clipboardData.items.length; i++) {
+          const item = clipboardData.items[i];
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+              imageFiles.push(file);
+            }
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        handlePasteFiles(imageFiles);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [isOpen, handlePasteFiles]);
 
   if (!isOpen) return null;
 
@@ -82,7 +142,10 @@ export const TaskModal: React.FC<Props> = ({
       <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-slate-800/80 border-b border-slate-700/60">
-          <h2 className="text-base font-bold text-white">Yangi task qo‘shish</h2>
+          <div>
+            <h2 className="text-base font-bold text-white">Yangi task qo‘shish</h2>
+            <p className="text-[11px] text-slate-400">Rasm yuklash yoki bevosita Ctrl+V bilan skrinshot tashlash mumkin</p>
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
@@ -152,14 +215,21 @@ export const TaskModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Image Upload */}
+          {/* Image Upload Area with Ctrl+V support */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Rasmlar yuklash (Bir nechta tanlash mumkin)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-300">
+                Rasmlar yuklash (Bir nechta tanlash mumkin)
+              </label>
+              <span className="text-[10px] text-indigo-400 font-medium flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                <ClipboardPaste className="w-3 h-3" />
+                Ctrl + V ishlaydi
+              </span>
+            </div>
+
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all"
+              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all group"
             >
               <input
                 type="file"
@@ -173,9 +243,14 @@ export const TaskModal: React.FC<Props> = ({
                 {isUploading ? (
                   <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
                 ) : (
-                  <Upload className="w-6 h-6 text-indigo-400" />
+                  <Upload className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
                 )}
-                <span>Rasmlarni tanlash uchun bu yerga bosing</span>
+                <span className="font-medium text-slate-300">
+                  {isUploading ? 'Rasm yuklanmoqda va siqilmoqda...' : 'Rasmlarni tanlash uchun bosing yoki bu yerga tashlang'}
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Yoki nusxalangan skrinshotni bevosita <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">Ctrl + V</kbd> orqali qo‘ying
+                </span>
               </div>
             </div>
 
