@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, CheckCircle2, Trash2, Eye, Loader2 } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Trash2,
+  Eye,
+  Loader2,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  FileIcon,
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
-import type { Task, UserRole, TaskImage } from '../types';
+import type { Task, UserRole, TaskImage, TaskFile } from '../types';
 import { notifyTaskCompleted } from '../services/telegramService';
+import { formatFileSize, downloadTaskFile } from '../services/fileUtils';
 
 interface Props {
   task: Task;
@@ -26,7 +38,6 @@ export const TaskCard: React.FC<Props> = ({
     setIsSending(true);
 
     try {
-      // 1. Confetti
       try {
         confetti({
           particleCount: 80,
@@ -35,10 +46,8 @@ export const TaskCard: React.FC<Props> = ({
         });
       } catch (e) {}
 
-      // 2. Telegram botga darhol xabar yuborish
+      // Telegram botga xabar yuborish (Glass Pro ga boradi)
       await notifyTaskCompleted(task);
-
-      // 3. Statusni yangilash
       onComplete(task.id);
     } catch (err) {
       console.error('Xabar yuborishda xatolik:', err);
@@ -46,6 +55,17 @@ export const TaskCard: React.FC<Props> = ({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const getDocIcon = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) {
+      return <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
+    }
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) {
+      return <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />;
+    }
+    return <FileIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />;
   };
 
   return (
@@ -121,11 +141,40 @@ export const TaskCard: React.FC<Props> = ({
             </div>
           </div>
         )}
+
+        {/* Attached Files List (Word, Excel) */}
+        {task.files && task.files.length > 0 && (
+          <div className="mb-3">
+            <div className="text-[11px] font-semibold text-slate-400 mb-1.5">
+              Hujjatlar ({task.files.length} ta):
+            </div>
+            <div className="space-y-1.5">
+              {task.files.map((f: TaskFile) => (
+                <div
+                  key={f.id}
+                  onClick={() => downloadTaskFile(f)}
+                  className="flex items-center justify-between p-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs cursor-pointer transition-colors group"
+                  title="Yuklab olish uchun bosing"
+                >
+                  <div className="flex items-center gap-2 truncate pr-2">
+                    {getDocIcon(f.name)}
+                    <span className="text-slate-200 truncate group-hover:text-indigo-300 font-medium">
+                      {f.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500 shrink-0">
+                      ({formatFileSize(f.size)})
+                    </span>
+                  </div>
+                  <Download className="w-3.5 h-3.5 text-slate-400 group-hover:text-white shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Card Actions Footer */}
       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-2">
-        {/* If Completed */}
         {isCompleted ? (
           <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4" />
@@ -148,13 +197,13 @@ export const TaskCard: React.FC<Props> = ({
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Bajardim (Telegramga xabar boradi)</span>
+                <span>Bajardim (Glass Pro ga xabar boradi)</span>
               </>
             )}
           </button>
         )}
 
-        {/* Delete button (Admin only) */}
+        {/* Delete button (Glass Pro only) */}
         {role === 'admin' && (
           <button
             onClick={() => {

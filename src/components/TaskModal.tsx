@@ -1,7 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Upload, Calendar, Clock, Trash2, Eye, Loader2, ClipboardPaste } from 'lucide-react';
-import type { Task, TaskImage } from '../types';
+import {
+  X,
+  Upload,
+  Calendar,
+  Clock,
+  Trash2,
+  Eye,
+  Loader2,
+  ClipboardPaste,
+  FileText,
+  FileSpreadsheet,
+  FileIcon,
+} from 'lucide-react';
+import type { Task, TaskImage, TaskFile } from '../types';
 import { processMultipleImages } from '../services/imageUtils';
+import { processMultipleFiles, formatFileSize } from '../services/fileUtils';
 import { notifyTaskCreated } from '../services/telegramService';
 
 interface Props {
@@ -23,22 +36,25 @@ export const TaskModal: React.FC<Props> = ({
   const [dueDate, setDueDate] = useState(today);
   const [dueTime, setDueTime] = useState('18:00');
   const [images, setImages] = useState<TaskImage[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [files, setFiles] = useState<TaskFile[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePasteFiles = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    setIsUploading(true);
+  const handlePasteFiles = useCallback(async (pastedFiles: File[]) => {
+    if (pastedFiles.length === 0) return;
+    setIsUploadingImages(true);
     try {
-      const newImages = await processMultipleImages(files);
+      const newImages = await processMultipleImages(pastedFiles);
       if (newImages.length > 0) {
         setImages((prev) => [...prev, ...newImages]);
       }
     } catch (err) {
       alert('Rasmni yuklashda xatolik yuz berdi');
     } finally {
-      setIsUploading(false);
+      setIsUploadingImages(false);
     }
   }, []);
 
@@ -52,7 +68,6 @@ export const TaskModal: React.FC<Props> = ({
 
       const imageFiles: File[] = [];
 
-      // 1. Files tekshirish
       if (clipboardData.files && clipboardData.files.length > 0) {
         for (let i = 0; i < clipboardData.files.length; i++) {
           const file = clipboardData.files[i];
@@ -62,7 +77,6 @@ export const TaskModal: React.FC<Props> = ({
         }
       }
 
-      // 2. Items tekshirish (Skrinshotlar clipboardda item sifatida keladi)
       if (imageFiles.length === 0 && clipboardData.items && clipboardData.items.length > 0) {
         for (let i = 0; i < clipboardData.items.length; i++) {
           const item = clipboardData.items[i];
@@ -89,22 +103,42 @@ export const TaskModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Rasm fayllarini yuklash
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    setIsUploading(true);
+    setIsUploadingImages(true);
     try {
       const newImages = await processMultipleImages(e.target.files);
       setImages((prev) => [...prev, ...newImages]);
     } catch (err) {
       alert('Rasmlarni yuklashda xatolik yuz berdi');
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsUploadingImages(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  // Hujjat fayllarini (Word, Excel) yuklash
+  const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setIsUploadingFiles(true);
+    try {
+      const newDocs = await processMultipleFiles(e.target.files);
+      setFiles((prev) => [...prev, ...newDocs]);
+    } catch (err) {
+      alert('Fayllarni yuklashda xatolik yuz berdi');
+    } finally {
+      setIsUploadingFiles(false);
+      if (docInputRef.current) docInputRef.current.value = '';
     }
   };
 
   const removeImage = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,20 +155,34 @@ export const TaskModal: React.FC<Props> = ({
       dueDate: dueDate || today,
       dueTime: dueTime || undefined,
       images,
+      files,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
 
     onSave(newTask);
 
-    // Telegram botga yangi task haqida xabar yuborish
+    // Telegram botga yangi task haqida xabar yuborish (Glass Pro -> Dasturchi)
     notifyTaskCreated(newTask).catch(() => {});
 
     // Tozalash va yopish
     setTitle('');
     setDescription('');
     setImages([]);
+    setFiles([]);
     onClose();
+  };
+
+  // Fayl ikonkasi turi
+  const getFileIcon = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) {
+      return <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />;
+    }
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) {
+      return <FileText className="w-4 h-4 text-sky-400 shrink-0" />;
+    }
+    return <FileIcon className="w-4 h-4 text-amber-400 shrink-0" />;
   };
 
   return (
@@ -143,8 +191,8 @@ export const TaskModal: React.FC<Props> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-slate-800/80 border-b border-slate-700/60">
           <div>
-            <h2 className="text-base font-bold text-white">Yangi task qo‘shish</h2>
-            <p className="text-[11px] text-slate-400">Rasm yuklash yoki bevosita Ctrl+V bilan skrinshot tashlash mumkin</p>
+            <h2 className="text-base font-bold text-white">Yangi task qo‘shish (Glass Pro)</h2>
+            <p className="text-[11px] text-slate-400">Rasm, Word va Excel hujjatlarini biriktirishingiz mumkin</p>
           </div>
           <button
             onClick={onClose}
@@ -165,7 +213,7 @@ export const TaskModal: React.FC<Props> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Masalan: Saytdagi tugmani yashil qilish..."
+              placeholder="Masalan: Omborxona tizimini yangilash..."
               className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               required
               autoFocus
@@ -215,11 +263,11 @@ export const TaskModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Image Upload Area with Ctrl+V support */}
+          {/* 1. Image Upload Area (with Ctrl+V support) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-semibold text-slate-300">
-                Rasmlar yuklash (Bir nechta tanlash mumkin)
+                1. Rasmlar yuklash (Bir nechta tanlash mumkin)
               </label>
               <span className="text-[10px] text-indigo-400 font-medium flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
                 <ClipboardPaste className="w-3 h-3" />
@@ -228,35 +276,32 @@ export const TaskModal: React.FC<Props> = ({
             </div>
 
             <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all group"
+              onClick={() => imageInputRef.current?.click()}
+              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-3.5 text-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all group"
             >
               <input
                 type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
+                ref={imageInputRef}
+                onChange={handleImageChange}
                 multiple
                 accept="image/*"
                 className="hidden"
               />
-              <div className="flex flex-col items-center gap-1.5 text-xs text-slate-400">
-                {isUploading ? (
-                  <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+              <div className="flex flex-col items-center gap-1 text-xs text-slate-400">
+                {isUploadingImages ? (
+                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
                 ) : (
-                  <Upload className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+                  <Upload className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
                 )}
                 <span className="font-medium text-slate-300">
-                  {isUploading ? 'Rasm yuklanmoqda va siqilmoqda...' : 'Rasmlarni tanlash uchun bosing yoki bu yerga tashlang'}
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Yoki nusxalangan skrinshotni bevosita <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">Ctrl + V</kbd> orqali qo‘ying
+                  {isUploadingImages ? 'Rasm yuklanmoqda...' : 'Rasmlarni tanlang yoki Ctrl+V bosing'}
                 </span>
               </div>
             </div>
 
-            {/* Uploaded Images List */}
+            {/* Images Preview List */}
             {images.length > 0 && (
-              <div className="mt-2.5 grid grid-cols-3 gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {images.map((img) => (
                   <div
                     key={img.id}
@@ -281,6 +326,70 @@ export const TaskModal: React.FC<Props> = ({
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2. Documents / Files Upload Area (Word, Excel, PDF) */}
+          <div className="pt-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-300">
+                2. Hujjatlar yuklash (Word, Excel, PDF va h.k.)
+              </label>
+              <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                Word / Excel
+              </span>
+            </div>
+
+            <div
+              onClick={() => docInputRef.current?.click()}
+              className="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-xl p-3 text-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition-all group"
+            >
+              <input
+                type="file"
+                ref={docInputRef}
+                onChange={handleDocChange}
+                multiple
+                accept=".doc,.docx,.xls,.xlsx,.pdf,.txt,.zip"
+                className="hidden"
+              />
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                {isUploadingFiles ? (
+                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                )}
+                <span className="font-medium text-slate-300">
+                  {isUploadingFiles ? 'Fayllar yuklanmoqda...' : 'Word yoki Excel fayllarini tanlash'}
+                </span>
+              </div>
+            </div>
+
+            {/* Attached Files List */}
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs"
+                  >
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      {getFileIcon(file.name)}
+                      <span className="text-white truncate font-medium">{file.name}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0">
+                        ({formatFileSize(file.size)})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file.id)}
+                      className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
+                      title="O‘chirish"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>

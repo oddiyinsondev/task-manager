@@ -7,6 +7,14 @@ export interface TaskImage {
   size?: number;
 }
 
+export interface TaskFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string; // Base64 fayl
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -14,6 +22,7 @@ export interface Task {
   dueDate: string; // YYYY-MM-DD
   dueTime?: string; // HH:mm
   images: TaskImage[];
+  files?: TaskFile[]; // Word, Excel, PDF va h.k.
   status: 'pending' | 'completed';
   completedAt?: string;
   createdAt: string;
@@ -21,10 +30,12 @@ export interface Task {
 
 export interface TelegramConfig {
   botToken: string;
-  chatId: string;
+  glassProChatId: string;
+  developerChatId: string;
 }
 
 export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
   botToken: '8732716123:AAFqsMqPCkTA72zB0ReMTJJpvV7d9aKUIdE',
-  chatId: '7072212883',
+  glassProChatId: '7072212883',
+  developerChatId: '451592269',
 };

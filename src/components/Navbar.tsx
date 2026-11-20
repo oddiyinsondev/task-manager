@@ -22,7 +22,7 @@ export const Navbar: React.FC<Props> = ({ role, onLogout, onOpenCreateTask }) =>
               Task Manager
             </span>
             <span className="hidden sm:inline-block ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              Telegram Bot Ulangan
+              Glass Pro
             </span>
           </div>
         </div>
@@ -40,7 +40,7 @@ export const Navbar: React.FC<Props> = ({ role, onLogout, onOpenCreateTask }) =>
             {role === 'admin' ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                <span>Admin</span>
+                <span>Glass Pro</span>
               </>
             ) : (
               <>
@@ -50,7 +50,7 @@ export const Navbar: React.FC<Props> = ({ role, onLogout, onOpenCreateTask }) =>
             )}
           </div>
 
-          {/* Admin creates new task */}
+          {/* Glass Pro creates new task */}
           {role === 'admin' && (
             <button
               onClick={onOpenCreateTask}

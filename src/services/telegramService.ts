@@ -8,10 +8,8 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
-export async function sendTelegramMessage(htmlText: string): Promise<{ success: boolean; error?: string }> {
+export async function sendTelegramMessage(chatId: string, htmlText: string): Promise<{ success: boolean; error?: string }> {
   const token = DEFAULT_TELEGRAM_CONFIG.botToken;
-  const chatId = DEFAULT_TELEGRAM_CONFIG.chatId;
-
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
   try {
@@ -39,7 +37,7 @@ export async function sendTelegramMessage(htmlText: string): Promise<{ success: 
 }
 
 /**
- * Dasturchi taskni bajarganida yuboriladigan xabar
+ * Dasturchi taskni bajarganida Glass Pro ga (7072212883) yuboriladigan xabar
  */
 export async function notifyTaskCompleted(task: Task): Promise<{ success: boolean; error?: string }> {
   const now = new Date().toLocaleString('uz-UZ', {
@@ -56,16 +54,18 @@ export async function notifyTaskCompleted(task: Task): Promise<{ success: boolea
 📌 <b>Vazifa:</b> ${escapeHtml(task.title)}
 📅 <b>Reja sanasi:</b> ${task.dueDate}${task.dueTime ? ' ' + task.dueTime : ''}
 ⏰ <b>Bajarilgan vaqt:</b> ${now}
-${task.images && task.images.length > 0 ? `🖼 <b>Biriktirilgan rasmlar:</b> ${task.images.length} ta\n` : ''}
+${task.images && task.images.length > 0 ? `🖼 <b>Rasmlar soni:</b> ${task.images.length} ta\n` : ''}
+${task.files && task.files.length > 0 ? `📎 <b>Biriktirilgan fayllar:</b> ${task.files.length} ta\n` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 <i>Dasturchi vazifani yakunladi deb belgiladi!</i>
 `.trim();
 
-  return await sendTelegramMessage(html);
+  // Glass Pro ga boradi
+  return await sendTelegramMessage(DEFAULT_TELEGRAM_CONFIG.glassProChatId, html);
 }
 
 /**
- * Admin yangi task berganida yuboriladigan xabar
+ * Glass Pro yangi task berganida Dasturchiga (451592269) yuboriladigan xabar
  */
 export async function notifyTaskCreated(task: Task): Promise<{ success: boolean; error?: string }> {
   const html = `
@@ -75,9 +75,16 @@ export async function notifyTaskCreated(task: Task): Promise<{ success: boolean;
 📅 <b>Muddati:</b> ${task.dueDate}${task.dueTime ? ' ' + task.dueTime : ''}
 ${task.description ? `📝 <b>Tavsif:</b>\n<i>${escapeHtml(task.description)}</i>\n` : ''}
 ${task.images && task.images.length > 0 ? `🖼 <b>Rasmlar soni:</b> ${task.images.length} ta\n` : ''}
+${task.files && task.files.length > 0 ? `📎 <b>Hujjatlar (Word/Excel):</b> ${task.files.length} ta\n` : ''}
 ━━━━━━━━━━━━━━━━━━━━
-<i>Admin yangi vazifa kiritdi. Iltimos, tizimga kirib ko‘ring!</i>
+<i>Glass Pro yangi vazifa kiritdi. Iltimos, tizimga kirib ko‘ring!</i>
 `.trim();
 
-  return await sendTelegramMessage(html);
+  // Dasturchiga (451592269) yuboriladi
+  const resDev = await sendTelegramMessage(DEFAULT_TELEGRAM_CONFIG.developerChatId, html);
+
+  // Shuningdek, Glass Pro ga ham nusxa yuboriladi
+  sendTelegramMessage(DEFAULT_TELEGRAM_CONFIG.glassProChatId, html).catch(() => {});
+
+  return resDev;
 }

@@ -93,12 +93,12 @@ export function App() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <div>
             <h1 className="text-lg font-bold text-white">
-              {role === 'admin' ? 'Xush kelibsiz, Admin!' : 'Xush kelibsiz, Dasturchi!'}
+              {role === 'admin' ? 'Xush kelibsiz, Glass Pro!' : 'Xush kelibsiz, Dasturchi!'}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               {role === 'admin'
-                ? 'Siz yangi tasklarni kiritasiz va rasmlar biriktirasiz. Dasturchi bajarganda botingizga xabar keladi.'
-                : 'Admin bergan vazifalarni ko‘ring va bajarganingizdan so‘ng "Bajardim" tugmasini bosing.'}
+                ? 'Siz yangi tasklar, rasmlar va fayllar (Word, Excel) kiritasiz. Dasturchi bajarganda botingizga hisobot keladi.'
+                : 'Glass Pro bergan vazifalarni ko‘ring va bajarganingizdan so‘ng "Bajardim" tugmasini bosing.'}
             </p>
           </div>
 

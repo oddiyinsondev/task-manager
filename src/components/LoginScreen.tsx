@@ -20,7 +20,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     const cleanPass = password.trim();
 
     if (selectedRole === 'admin') {
-      if (cleanUser === 'admin' && cleanPass === 'shohruhbekk') {
+      // Glass Pro uchun login admin yoki glasspro
+      if ((cleanUser === 'admin' || cleanUser === 'glasspro') && cleanPass === 'shohruhbekk') {
         onLogin('admin');
       } else {
         setError('Login yoki parol noto‘g‘ri!');
@@ -67,7 +68,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             }`}
           >
             <ShieldCheck className="w-5 h-5" />
-            <span>Admin (Task beruvchi)</span>
+            <span>Glass Pro (Task beruvchi)</span>
           </button>
 
           <button
@@ -101,9 +102,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           }`}
         >
           {selectedRole === 'admin' ? (
-            <>👑 <strong>Admin</strong> sifatida yangi tasklar kiritishingiz va rasmlar biriktirishingiz mumkin.</>
+            <>👑 <strong>Glass Pro</strong> sifatida yangi tasklar kiritishingiz, rasm va fayllar (Word, Excel) biriktirishingiz mumkin.</>
           ) : (
-            <>💻 <strong>Dasturchi</strong> sifatida admin bergan tasklarni ko‘rishingiz va "Bajardim" tugmasini bosishingiz mumkin.</>
+            <>💻 <strong>Dasturchi</strong> sifatida Glass Pro bergan tasklarni ko‘rishingiz va "Bajardim" tugmasini bosishingiz mumkin.</>
           )}
         </div>
 
@@ -156,7 +157,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
             }`}
           >
-            <span>{selectedRole === 'admin' ? 'Admin sifatida kirish' : 'Dasturchi sifatida kirish'}</span>
+            <span>{selectedRole === 'admin' ? 'Glass Pro sifatida kirish' : 'Dasturchi sifatida kirish'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

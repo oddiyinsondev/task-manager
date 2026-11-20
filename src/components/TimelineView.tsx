@@ -52,7 +52,7 @@ export const TimelineView: React.FC<Props> = ({
         <p className="text-xs text-slate-500">
           {role === 'admin'
             ? 'Yuqoridagi "+ Yangi task qo‘shish" tugmasi orqali yangi vazifa bering.'
-            : 'Admin hali yangi vazifa kiritmagan.'}
+            : 'Glass Pro hali yangi vazifa kiritmagan.'}
         </p>
       </div>
     );
