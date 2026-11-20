@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "task_1795176264448",
+    "title": "EQAWF",
+    "description": "AD",
+    "dueDate": "2026-11-20",
+    "dueTime": "18:00",
+    "images": [],
+    "files": [],
+    "status": "pending",
+    "createdAt": "2026-11-20T12:04:24.448Z"
+  }
+]
