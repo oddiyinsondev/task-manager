@@ -25,7 +25,6 @@ interface Props {
 
 export const TaskCard: React.FC<Props> = ({
   task,
-  role,
   onOpenReportModal,
   onDelete,
   onPreviewImage,
@@ -53,7 +52,7 @@ export const TaskCard: React.FC<Props> = ({
       }`}
     >
       <div>
-        {/* Top Header: Date and Status */}
+        {/* Top Header: Date, Status and Delete Button */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-medium bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
             <Calendar className="w-3.5 h-3.5 text-indigo-400" />
@@ -67,16 +66,28 @@ export const TaskCard: React.FC<Props> = ({
             )}
           </div>
 
-          {isCompleted ? (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Bajarildi
-            </span>
-          ) : (
-            <span className="text-[11px] font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-              Kutilmoqda
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isCompleted ? (
+              <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Bajarildi
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                Kutilmoqda
+              </span>
+            )}
+
+            {/* O'chirish tugmasi har qanday holatda har bir kartada turadi */}
+            <button
+              type="button"
+              onClick={() => onDelete(task.id)}
+              className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors ml-1"
+              title="Vazifani o‘chirish"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Title */}
@@ -216,7 +227,6 @@ export const TaskCard: React.FC<Props> = ({
 
       {/* Card Actions Footer */}
       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-3">
-        {/* If Completed */}
         {isCompleted ? (
           <div className="flex items-center justify-between w-full">
             <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
@@ -224,7 +234,6 @@ export const TaskCard: React.FC<Props> = ({
               <span>Bajarilgan</span>
             </span>
 
-            {/* Re-open report if needed */}
             <button
               onClick={() => onOpenReportModal(task)}
               className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1"
@@ -234,24 +243,12 @@ export const TaskCard: React.FC<Props> = ({
             </button>
           </div>
         ) : (
-          /* "Hisobot yuklash va yakunlash" button (for Developer or Glass Pro) */
           <button
             onClick={() => onOpenReportModal(task)}
             className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5"
           >
             <FileCheck2 className="w-4 h-4" />
             <span>Hisobot yuklash & Bajardim (Telegramga xabar boradi)</span>
-          </button>
-        )}
-
-        {/* Delete button (Glass Pro only) */}
-        {role === 'admin' && (
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 bg-slate-800 rounded-xl transition-all shrink-0 ml-1"
-            title="Vazifani o‘chirish"
-          >
-            <Trash2 className="w-4 h-4" />
           </button>
         )}
       </div>

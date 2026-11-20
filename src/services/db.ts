@@ -1,7 +1,7 @@
 import type { Task } from '../types';
 
 const DB_NAME = 'TaskManagerDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Versiya oshirildi: eski test ma'lumotlarni tozalash uchun
 const STORE_NAME = 'tasks_store';
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -13,11 +13,12 @@ function openDatabase(): Promise<IDBDatabase> {
 
     const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
       }
+      db.createObjectStore(STORE_NAME, { keyPath: 'id' });
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -26,7 +27,7 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 /**
- * IndexedDB dan barcha tasklarni olish (Excel va rasmlari bilan to'liq)
+ * IndexedDB dan barcha tasklarni olish
  */
 export async function getAllTasksFromDB(): Promise<Task[]> {
   try {
@@ -48,7 +49,7 @@ export async function getAllTasksFromDB(): Promise<Task[]> {
 }
 
 /**
- * IndexedDB ga tasklarni to'liq saqlash (Katta hajmdagi Excel/Word fayllari xatosiz sig'adi)
+ * IndexedDB ga tasklarni to'liq saqlash
  */
 export async function saveAllTasksToDB(tasks: Task[]): Promise<boolean> {
   try {
@@ -57,7 +58,6 @@ export async function saveAllTasksToDB(tasks: Task[]): Promise<boolean> {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
 
-      // Avval eskilarini tozalab, yangilarini yozamiz
       store.clear();
 
       for (const t of tasks) {
