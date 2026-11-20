@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import type { Task, UserRole, TaskImage, TaskReport } from './types';
 import {
-  loadLocalTasks,
-  saveLocalTasks,
   getSavedRole,
   saveRole,
   fetchTasksFromJson,
@@ -25,27 +23,11 @@ export function App() {
   const [selectedTaskForReport, setSelectedTaskForReport] = useState<Task | null>(null);
   const [previewImage, setPreviewImage] = useState<TaskImage | null>(null);
 
-  // Dastlabki yuklash va tasks.json bilan doimiy sinxronizatsiya
+  // Dastlabki yuklash
   useEffect(() => {
-    // 1. Dastlabki o'qish (tasks.json dan)
     fetchTasksFromJson().then((loaded) => {
       setTasks(loaded);
     });
-
-    // 2. Har 4 soniyada tasks.json dan yangilanishlarni tekshirish (Real-time sync)
-    const interval = setInterval(() => {
-      fetchTasksFromJson().then((remoteTasks) => {
-        setTasks((prev) => {
-          // Agar ma'lumotlar o'zgargan bo'lsa yangilaymiz
-          if (JSON.stringify(prev) !== JSON.stringify(remoteTasks)) {
-            return remoteTasks;
-          }
-          return prev;
-        });
-      });
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = (userRole: UserRole) => {

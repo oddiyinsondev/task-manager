@@ -1,72 +1,43 @@
 import type { Task } from '../types';
+import { getAllTasksFromDB, saveAllTasksToDB } from './db';
 
-const STORAGE_KEY = 'simple_task_manager_clean_v3';
 const AUTH_KEY = 'simple_task_manager_auth_v3';
 
-// Markaziy bulutli JSON baza (Vercel va barcha qurilmalar uchun umumiy)
-const CLOUD_JSON_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a1f8d99bea0770';
-
-// 1. Tasklarni o'qish (Avval Bulutli JSON bazadan, keyin /api/tasks dan, oxiri lokal keshdan)
+// 1. Tasklarni o'qish (IndexedDB + tasks.json API)
 export async function fetchTasksFromJson(): Promise<Task[]> {
-  // A) Bulutli markaziy JSON bazasidan o'qish (Serverda va Vercelda 100% ishlaydi)
+  // Avval ishonchli IndexedDB dan olamiz (katta Excel va rasmlar saqlanadigan joy)
   try {
-    const cloudRes = await fetch(CLOUD_JSON_URL, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
-    if (cloudRes.ok) {
-      const result = await cloudRes.json();
-      const cloudTasks = result?.data?.tasks;
-      if (Array.isArray(cloudTasks)) {
-        saveLocalTasks(cloudTasks);
-        return cloudTasks;
-      }
+    const dbTasks = await getAllTasksFromDB();
+    if (Array.isArray(dbTasks) && dbTasks.length > 0) {
+      return dbTasks;
     }
-  } catch (err) {
-    // Agar internet xatosi bo'lsa
-  }
+  } catch (e) {}
 
-  // B) Mahalliy /api/tasks dan o'qish (npm run dev mahalliy rejimda)
+  // Agar IndexedDB bo'sh bo'lsa, lokal /api/tasks dan tekshiramiz
   try {
-    const localRes = await fetch('/api/tasks');
-    if (localRes.ok) {
-      const localData = await localRes.json();
-      if (Array.isArray(localData)) {
-        saveLocalTasks(localData);
-        return localData;
+    const res = await fetch('/api/tasks');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        await saveAllTasksToDB(data);
+        return data;
       }
     }
   } catch (e) {}
 
-  // C) Zaxira sifatida lokal keshdan
-  return loadLocalTasks();
+  return [];
 }
 
-// 2. Tasklarni saqlash (Ham bulutli bazaga, ham lokal tasks.json ga)
+// 2. Tasklarni xavfsiz saqlash (IndexedDB + tasks.json)
 export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
-  // Har doim lokal keshga yozamiz
-  saveLocalTasks(tasks);
-
-  // A) Bulutli markaziy JSON bazasiga yozish (Serverda ishlaydi)
+  // 1. IndexedDB ga to'liq va kafolatli saqlaymiz (Excel va rasmlar sig'adi)
   try {
-    fetch(CLOUD_JSON_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: 'task_manager_store',
-        data: {
-          tasks,
-        },
-      }),
-    }).catch(() => {});
-  } catch (err) {}
+    await saveAllTasksToDB(tasks);
+  } catch (err) {
+    console.error('IndexedDB saqlashda xatolik:', err);
+  }
 
-  // B) Mahalliy /api/tasks ga yozish (mahalliy tasks.json fayli uchun)
+  // 2. Mahalliy serverda bo'lsa tasks.json ga yozish
   try {
     fetch('/api/tasks', {
       method: 'POST',
@@ -78,26 +49,6 @@ export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
   } catch (err) {}
 
   return true;
-}
-
-// LocalStorage yordamchilari (Fallback)
-export function loadLocalTasks(): Task[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveLocalTasks(tasks: Task[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  } catch (e) {
-    console.error('Lokal keshda xatolik:', e);
-  }
 }
 
 export function getSavedRole(): 'admin' | 'developer' | null {
