@@ -2,59 +2,42 @@ import type { Task } from '../types';
 import { getAllTasksFromDB, saveAllTasksToDB, deleteSingleTaskFromDB } from './db';
 
 const AUTH_KEY = 'simple_task_manager_auth_v3';
-const INITIALIZED_FLAG = 'simple_task_manager_initialized_v4';
 
-// 1. Tasklarni o'qish
+// 1. Tasklarni o'qish (IndexedDB dan to'liq va kafolatli)
 export async function fetchTasksFromJson(): Promise<Task[]> {
   try {
     const dbTasks = await getAllTasksFromDB();
-
-    // Agar tizim avval initsializatsiya qilingan bo'lsa, IndexedDB ning o'zidagi ma'lumot qat'iy master hisoblanadi (bo'sh bo'lsa ham bo'sh qaytaradi)
-    const isInitialized = localStorage.getItem(INITIALIZED_FLAG);
-
-    if (isInitialized) {
-      return dbTasks || [];
-    }
-
-    // Eng birinchi marta kirganda:
     if (Array.isArray(dbTasks) && dbTasks.length > 0) {
-      localStorage.setItem(INITIALIZED_FLAG, 'true');
       return dbTasks;
     }
 
-    // Agar IndexedDB bo'sh bo'lsa va hali initsializatsiya qilinmagan bo'lsa:
+    // Agar bo'sh bo'lsa, /api/tasks dan tekshirib ko'radi
     try {
       const res = await fetch('/api/tasks');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           await saveAllTasksToDB(data);
-          localStorage.setItem(INITIALIZED_FLAG, 'true');
           return data;
         }
       }
     } catch (e) {}
 
-    localStorage.setItem(INITIALIZED_FLAG, 'true');
-    return [];
+    return dbTasks || [];
   } catch (err) {
-    console.error('Tasklarni o‘qishda xatolik:', err);
     return [];
   }
 }
 
-// 2. Tasklarni xavfsiz saqlash
+// 2. Tasklarni xavfsiz saqlash (Excel, Word, rasmlar xatosiz saqlanadi)
 export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
-  localStorage.setItem(INITIALIZED_FLAG, 'true');
-
-  // 1. IndexedDB ga to'liq va kafolatli saqlaymiz
   try {
     await saveAllTasksToDB(tasks);
   } catch (err) {
-    console.error('IndexedDB saqlashda xatolik:', err);
+    console.error('Saqlashda xatolik:', err);
   }
 
-  // 2. Mahalliy yoki Vercel api/tasks ga ham yuborish
+  // Mahalliy yoki server api ga ham yuborib qo'yadi
   try {
     fetch('/api/tasks', {
       method: 'POST',

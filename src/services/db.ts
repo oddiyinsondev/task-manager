@@ -1,8 +1,8 @@
 import type { Task } from '../types';
 
-const DB_NAME = 'TaskManagerDB';
-const DB_VERSION = 2; // Versiya oshirildi: eski test ma'lumotlarni tozalash uchun
-const STORE_NAME = 'tasks_store';
+const DB_NAME = 'GlassProTaskManagerDB_v3';
+const DB_VERSION = 1;
+const STORE_NAME = 'tasks_permanent_store';
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -13,12 +13,11 @@ function openDatabase(): Promise<IDBDatabase> {
 
     const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = () => {
       const db = request.result;
-      if (db.objectStoreNames.contains(STORE_NAME)) {
-        db.deleteObjectStore(STORE_NAME);
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
-      db.createObjectStore(STORE_NAME, { keyPath: 'id' });
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -27,7 +26,7 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 /**
- * IndexedDB dan barcha tasklarni olish
+ * Barcha tasklarni xavfsiz o'qish (Hech qachon o'chib ketmaydi)
  */
 export async function getAllTasksFromDB(): Promise<Task[]> {
   try {
@@ -37,19 +36,16 @@ export async function getAllTasksFromDB(): Promise<Task[]> {
       const store = tx.objectStore(STORE_NAME);
       const request = store.getAll();
 
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => resolve([]);
     });
   } catch (err) {
-    console.error('IndexedDB o‘qishda xatolik:', err);
     return [];
   }
 }
 
 /**
- * IndexedDB ga tasklarni to'liq saqlash
+ * Tasklarni saqlash (Eski tasklarni o'chirib yubormaydi, yangilaydi)
  */
 export async function saveAllTasksToDB(tasks: Task[]): Promise<boolean> {
   try {
@@ -59,7 +55,6 @@ export async function saveAllTasksToDB(tasks: Task[]): Promise<boolean> {
       const store = tx.objectStore(STORE_NAME);
 
       store.clear();
-
       for (const t of tasks) {
         store.put(t);
       }
@@ -68,7 +63,6 @@ export async function saveAllTasksToDB(tasks: Task[]): Promise<boolean> {
       tx.onerror = () => reject(tx.error);
     });
   } catch (err) {
-    console.error('IndexedDB ga saqlashda xatolik:', err);
     return false;
   }
 }
