@@ -152,7 +152,7 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
-        Task Manager • Glass Pro & Telegram Bot: @dasturchilar_p26_bot
+        Task Manager • Glass Pro & Telegram Bot Notifications
       </footer>
 
       {/* 1. Yangi task yaratish modali */}
