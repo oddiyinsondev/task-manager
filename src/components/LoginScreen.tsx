@@ -23,13 +23,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       if (cleanUser === 'admin' && cleanPass === 'shohruhbekk') {
         onLogin('admin');
       } else {
-        setError('Admin logini yoki paroli noto‘g‘ri! (Login: admin, Parol: shohruhbekk)');
+        setError('Login yoki parol noto‘g‘ri!');
       }
     } else {
       if (cleanUser === 'dasturchi' && cleanPass === 'dasturchi2026') {
         onLogin('developer');
       } else {
-        setError('Dasturchi logini yoki paroli noto‘g‘ri! (Login: dasturchi, Parol: dasturchi2026)');
+        setError('Login yoki parol noto‘g‘ri!');
       }
     }
   };
@@ -122,7 +122,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder={selectedRole === 'admin' ? 'admin' : 'dasturchi'}
+              placeholder="Loginni kiriting..."
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               required
               autoFocus
