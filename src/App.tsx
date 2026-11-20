@@ -6,6 +6,7 @@ import {
   saveRole,
   fetchTasksFromJson,
   persistTasksToJson,
+  deleteTaskPermanently,
 } from './services/storageService';
 import { notifyTaskCompleted } from './services/telegramService';
 import { LoginScreen } from './components/LoginScreen';
@@ -54,6 +55,7 @@ export function App() {
   const handleDeleteTask = (taskId: string) => {
     const updated = tasks.filter((t) => t.id !== taskId);
     updateTasks(updated);
+    deleteTaskPermanently(taskId);
   };
 
   // Hisobot topshirilganda

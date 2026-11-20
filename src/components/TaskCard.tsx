@@ -247,13 +247,9 @@ export const TaskCard: React.FC<Props> = ({
         {/* Delete button (Glass Pro only) */}
         {role === 'admin' && (
           <button
-            onClick={() => {
-              if (confirm('Ushbu taskni o‘chirishni xohlaysizmi?')) {
-                onDelete(task.id);
-              }
-            }}
-            className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-rose-500/10 rounded-xl transition-colors shrink-0 ml-1"
-            title="O‘chirish"
+            onClick={() => onDelete(task.id)}
+            className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 bg-slate-800 rounded-xl transition-all shrink-0 ml-1"
+            title="Vazifani o‘chirish"
           >
             <Trash2 className="w-4 h-4" />
           </button>

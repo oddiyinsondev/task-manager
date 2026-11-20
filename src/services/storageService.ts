@@ -1,43 +1,60 @@
 import type { Task } from '../types';
-import { getAllTasksFromDB, saveAllTasksToDB } from './db';
+import { getAllTasksFromDB, saveAllTasksToDB, deleteSingleTaskFromDB } from './db';
 
 const AUTH_KEY = 'simple_task_manager_auth_v3';
+const INITIALIZED_FLAG = 'simple_task_manager_initialized_v4';
 
-// 1. Tasklarni o'qish (IndexedDB + tasks.json API)
+// 1. Tasklarni o'qish
 export async function fetchTasksFromJson(): Promise<Task[]> {
-  // Avval ishonchli IndexedDB dan olamiz (katta Excel va rasmlar saqlanadigan joy)
   try {
     const dbTasks = await getAllTasksFromDB();
+
+    // Agar tizim avval initsializatsiya qilingan bo'lsa, IndexedDB ning o'zidagi ma'lumot qat'iy master hisoblanadi (bo'sh bo'lsa ham bo'sh qaytaradi)
+    const isInitialized = localStorage.getItem(INITIALIZED_FLAG);
+
+    if (isInitialized) {
+      return dbTasks || [];
+    }
+
+    // Eng birinchi marta kirganda:
     if (Array.isArray(dbTasks) && dbTasks.length > 0) {
+      localStorage.setItem(INITIALIZED_FLAG, 'true');
       return dbTasks;
     }
-  } catch (e) {}
 
-  // Agar IndexedDB bo'sh bo'lsa, lokal /api/tasks dan tekshiramiz
-  try {
-    const res = await fetch('/api/tasks');
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        await saveAllTasksToDB(data);
-        return data;
+    // Agar IndexedDB bo'sh bo'lsa va hali initsializatsiya qilinmagan bo'lsa:
+    try {
+      const res = await fetch('/api/tasks');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          await saveAllTasksToDB(data);
+          localStorage.setItem(INITIALIZED_FLAG, 'true');
+          return data;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
 
-  return [];
+    localStorage.setItem(INITIALIZED_FLAG, 'true');
+    return [];
+  } catch (err) {
+    console.error('Tasklarni o‘qishda xatolik:', err);
+    return [];
+  }
 }
 
-// 2. Tasklarni xavfsiz saqlash (IndexedDB + tasks.json)
+// 2. Tasklarni xavfsiz saqlash
 export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
-  // 1. IndexedDB ga to'liq va kafolatli saqlaymiz (Excel va rasmlar sig'adi)
+  localStorage.setItem(INITIALIZED_FLAG, 'true');
+
+  // 1. IndexedDB ga to'liq va kafolatli saqlaymiz
   try {
     await saveAllTasksToDB(tasks);
   } catch (err) {
     console.error('IndexedDB saqlashda xatolik:', err);
   }
 
-  // 2. Mahalliy serverda bo'lsa tasks.json ga yozish
+  // 2. Mahalliy yoki Vercel api/tasks ga ham yuborish
   try {
     fetch('/api/tasks', {
       method: 'POST',
@@ -48,6 +65,14 @@ export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
     }).catch(() => {});
   } catch (err) {}
 
+  return true;
+}
+
+// 3. Bitta taskni o'chirish
+export async function deleteTaskPermanently(taskId: string): Promise<boolean> {
+  try {
+    await deleteSingleTaskFromDB(taskId);
+  } catch (e) {}
   return true;
 }
 
