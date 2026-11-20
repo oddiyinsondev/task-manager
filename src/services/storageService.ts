@@ -1,51 +1,47 @@
 import type { Task } from '../types';
 import { getAllTasksFromDB, saveAllTasksToDB, deleteSingleTaskFromDB } from './db';
+import {
+  fetchTasksFromSupabase,
+  saveTaskToSupabase,
+  deleteTaskFromSupabase,
+} from './supabaseService';
 
 const AUTH_KEY = 'simple_task_manager_auth_v3';
 
-// 1. Tasklarni o'qish (IndexedDB dan to'liq va kafolatli)
+// 1. Tasklarni o'qish (Supabase Buluti + IndexedDB)
 export async function fetchTasksFromJson(): Promise<Task[]> {
+  // A) Supabase dan o'qish (Jonli bulutli baza)
+  try {
+    const remoteTasks = await fetchTasksFromSupabase();
+    if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
+      await saveAllTasksToDB(remoteTasks);
+      return remoteTasks;
+    }
+  } catch (err) {}
+
+  // B) Agar Supabase hali bo'sh bo'lsa yoki ulanmagan bo'lsa, mahalliy IndexedDB dan olamiz
   try {
     const dbTasks = await getAllTasksFromDB();
-    if (Array.isArray(dbTasks) && dbTasks.length > 0) {
+    if (Array.isArray(dbTasks)) {
       return dbTasks;
     }
+  } catch (err) {}
 
-    // Agar bo'sh bo'lsa, /api/tasks dan tekshirib ko'radi
-    try {
-      const res = await fetch('/api/tasks');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          await saveAllTasksToDB(data);
-          return data;
-        }
-      }
-    } catch (e) {}
-
-    return dbTasks || [];
-  } catch (err) {
-    return [];
-  }
+  return [];
 }
 
-// 2. Tasklarni xavfsiz saqlash (Excel, Word, rasmlar xatosiz saqlanadi)
+// 2. Tasklarni saqlash (Supabase Buluti + IndexedDB)
 export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
+  // 1. IndexedDB ga saqlash
   try {
     await saveAllTasksToDB(tasks);
-  } catch (err) {
-    console.error('Saqlashda xatolik:', err);
-  }
+  } catch (err) {}
 
-  // Mahalliy yoki server api ga ham yuborib qo'yadi
+  // 2. Supabase ga saqlash
   try {
-    fetch('/api/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tasks, null, 2),
-    }).catch(() => {});
+    for (const t of tasks) {
+      await saveTaskToSupabase(t);
+    }
   } catch (err) {}
 
   return true;
@@ -54,8 +50,13 @@ export async function persistTasksToJson(tasks: Task[]): Promise<boolean> {
 // 3. Bitta taskni o'chirish
 export async function deleteTaskPermanently(taskId: string): Promise<boolean> {
   try {
+    await deleteTaskFromSupabase(taskId);
+  } catch (e) {}
+
+  try {
     await deleteSingleTaskFromDB(taskId);
   } catch (e) {}
+
   return true;
 }
 

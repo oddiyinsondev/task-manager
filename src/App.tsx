@@ -8,6 +8,7 @@ import {
   persistTasksToJson,
   deleteTaskPermanently,
 } from './services/storageService';
+import { subscribeToTasks } from './services/supabaseService';
 import { notifyTaskCompleted } from './services/telegramService';
 import { LoginScreen } from './components/LoginScreen';
 import { Navbar } from './components/Navbar';
@@ -24,11 +25,24 @@ export function App() {
   const [selectedTaskForReport, setSelectedTaskForReport] = useState<Task | null>(null);
   const [previewImage, setPreviewImage] = useState<TaskImage | null>(null);
 
-  // Dastlabki yuklash
+  // Dastlabki yuklash va Supabase Real-time jonli tinglash
   useEffect(() => {
-    fetchTasksFromJson().then((loaded) => {
-      setTasks(loaded);
+    const loadData = () => {
+      fetchTasksFromJson().then((loaded) => {
+        setTasks(loaded);
+      });
+    };
+
+    loadData();
+
+    // Supabase orqali real-time jonli sinxronizatsiya
+    const unsubscribe = subscribeToTasks(() => {
+      loadData();
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleLogin = (userRole: UserRole) => {
