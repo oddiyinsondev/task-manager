@@ -6,6 +6,8 @@ import {
   saveLocalTasks,
   getSavedRole,
   saveRole,
+  fetchTasksFromJson,
+  persistTasksToJson,
 } from './services/storageService';
 import { notifyTaskCompleted } from './services/telegramService';
 import { LoginScreen } from './components/LoginScreen';
@@ -23,17 +25,27 @@ export function App() {
   const [selectedTaskForReport, setSelectedTaskForReport] = useState<Task | null>(null);
   const [previewImage, setPreviewImage] = useState<TaskImage | null>(null);
 
-  // Dastlabki yuklash
+  // Dastlabki yuklash va tasks.json bilan doimiy sinxronizatsiya
   useEffect(() => {
-    try {
-      localStorage.removeItem('task_manager_tasks_v1');
-      localStorage.removeItem('task_manager_settings_v1');
-      localStorage.removeItem('simple_task_manager_v2');
-      localStorage.removeItem('simple_task_manager_auth_v2');
-    } catch {}
+    // 1. Dastlabki o'qish (tasks.json dan)
+    fetchTasksFromJson().then((loaded) => {
+      setTasks(loaded);
+    });
 
-    const loaded = loadLocalTasks();
-    setTasks(loaded);
+    // 2. Har 4 soniyada tasks.json dan yangilanishlarni tekshirish (Real-time sync)
+    const interval = setInterval(() => {
+      fetchTasksFromJson().then((remoteTasks) => {
+        setTasks((prev) => {
+          // Agar ma'lumotlar o'zgargan bo'lsa yangilaymiz
+          if (JSON.stringify(prev) !== JSON.stringify(remoteTasks)) {
+            return remoteTasks;
+          }
+          return prev;
+        });
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = (userRole: UserRole) => {
@@ -46,9 +58,10 @@ export function App() {
     saveRole(null);
   };
 
+  // Ma'lumotlarni tasks.json ga saqlash
   const updateTasks = (newTasks: Task[]) => {
     setTasks(newTasks);
-    saveLocalTasks(newTasks);
+    persistTasksToJson(newTasks);
   };
 
   const handleSaveTask = (newTask: Task) => {
