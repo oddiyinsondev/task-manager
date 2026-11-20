@@ -12,22 +12,33 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleAdminSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    if (cleanUser === 'dasturchi' && cleanPass === 'dasturchi2026') {
-      onLogin('admin');
+    if (selectedRole === 'admin') {
+      if (cleanUser === 'admin' && cleanPass === 'shohruhbekk') {
+        onLogin('admin');
+      } else {
+        setError('Admin logini yoki paroli noto‘g‘ri! (Login: admin, Parol: shohruhbekk)');
+      }
     } else {
-      setError('Login yoki parol noto‘g‘ri! (Login: dasturchi, Parol: dasturchi2026)');
+      if (cleanUser === 'dasturchi' && cleanPass === 'dasturchi2026') {
+        onLogin('developer');
+      } else {
+        setError('Dasturchi logini yoki paroli noto‘g‘ri! (Login: dasturchi, Parol: dasturchi2026)');
+      }
     }
   };
 
-  const handleDeveloperDirectLogin = () => {
-    onLogin('developer');
+  const handleRoleChange = (role: UserRole) => {
+    setSelectedRole(role);
+    setUsername('');
+    setPassword('');
+    setError('');
   };
 
   return (
@@ -48,10 +59,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 border border-slate-800 rounded-2xl mb-6">
           <button
             type="button"
-            onClick={() => {
-              setSelectedRole('admin');
-              setError('');
-            }}
+            onClick={() => handleRoleChange('admin')}
             className={`py-3 px-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
               selectedRole === 'admin'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
@@ -64,10 +72,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
           <button
             type="button"
-            onClick={() => {
-              setSelectedRole('developer');
-              setError('');
-            }}
+            onClick={() => handleRoleChange('developer')}
             className={`py-3 px-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
               selectedRole === 'developer'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
@@ -87,68 +92,74 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           </div>
         )}
 
-        {/* Form content depending on role */}
-        {selectedRole === 'admin' ? (
-          <form onSubmit={handleAdminSubmit} className="space-y-4">
-            <div className="text-xs text-slate-400 bg-slate-800/40 p-3 rounded-xl border border-slate-800">
-              👑 <strong>Admin</strong> sifatida yangi tasklar kiritishingiz va rasmlar biriktirishingiz mumkin.
-            </div>
+        {/* Role Info Box */}
+        <div
+          className={`text-xs p-3 rounded-xl border mb-4 ${
+            selectedRole === 'admin'
+              ? 'bg-indigo-950/40 border-indigo-500/20 text-indigo-300'
+              : 'bg-emerald-950/40 border-emerald-500/20 text-emerald-300'
+          }`}
+        >
+          {selectedRole === 'admin' ? (
+            <>👑 <strong>Admin</strong> sifatida yangi tasklar kiritishingiz va rasmlar biriktirishingiz mumkin.</>
+          ) : (
+            <>💻 <strong>Dasturchi</strong> sifatida admin bergan tasklarni ko‘rishingiz va "Bajardim" tugmasini bosishingiz mumkin.</>
+          )}
+        </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-indigo-400" />
-                Login
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="dasturchi"
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                required
-                autoFocus
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
+              <User
+                className={`w-3.5 h-3.5 ${
+                  selectedRole === 'admin' ? 'text-indigo-400' : 'text-emerald-400'
+                }`}
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
-                <Lock className="w-3.5 h-3.5 text-indigo-400" />
-                Parol
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="dasturchi2026"
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 mt-2"
-            >
-              <span>Admin sifatida kirish</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-xs text-slate-400 bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/20 text-emerald-300">
-              💻 <strong>Dasturchi</strong> sifatida kirib, admin bergan tasklarni sanama-san ko‘rishingiz va <strong>"Bajardim"</strong> tugmasi orqali adminga Telegramdan xabar yuborishingiz mumkin.
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDeveloperDirectLogin}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2"
-            >
-              <span>Dasturchi bo‘lib kirish</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+              Login
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={selectedRole === 'admin' ? 'admin' : 'dasturchi'}
+              className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              required
+              autoFocus
+            />
           </div>
-        )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
+              <Lock
+                className={`w-3.5 h-3.5 ${
+                  selectedRole === 'admin' ? 'text-indigo-400' : 'text-emerald-400'
+                }`}
+              />
+              Parol
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Parolni kiriting..."
+              className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className={`w-full py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-2 ${
+              selectedRole === 'admin'
+                ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+            }`}
+          >
+            <span>{selectedRole === 'admin' ? 'Admin sifatida kirish' : 'Dasturchi sifatida kirish'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
       </div>
     </div>
   );

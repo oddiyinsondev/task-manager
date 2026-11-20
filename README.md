@@ -9,16 +9,17 @@ Backend talab qilmaydigan, to‘g‘ridan-to‘g‘ri **Vercel**ga joylashtirish
 Ilovaga kirish **ikki xil** rejimda ishlaydi:
 
 ### 1. 👑 Admin (Task beruvchi):
-- **Login:** `dasturchi`
-- **Parol:** `dasturchi2026`
+- **Login:** `admin`
+- **Parol:** `shohruhbekk`
 - **Imkoniyatlari:**
   - Yangi tasklar qo‘shish (Sarlavha, tavsif, sana, vaqt).
   - **Bir nechta rasmlar** yuklash (ustiga bosib to‘liq ekranda ko‘rish mumkin).
   - Tasklarni o‘chirish va nazorat qilish.
-  - Yangi task qo‘shilganda avtomatik Telegram botga xabar yuboriladi.
+  - Dasturchi bajarganda avtomatik Telegram botga hisobot keladi.
 
 ### 2. 💻 Dasturchi (Ijrochi):
-- **Kirish:** Parolsiz, bitta tugma orqali ("Dasturchi bo‘lib kirish").
+- **Login:** `dasturchi`
+- **Parol:** `dasturchi2026`
 - **Imkoniyatlari:**
   - Admin bergan tasklarni sanama-san (Bugun, Ertaga, Kelgusi kunlar) ko‘rish.
   - Rasmlarni ko‘rish va yuklab olish.
